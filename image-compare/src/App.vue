@@ -6,6 +6,16 @@ const imageList = ref([
   {
     url: 'http://127.0.0.1:8080/wallhaven-83dq9k.jpg'
   },
+  {
+    url: 'http://127.0.0.1:8080/wallhaven-83dq9k.jpg'
+  },
+  // {
+  //   url: 'http://127.0.0.1:8080/wallhaven-83dq9k.jpg'
+  // },
+  // {
+  //   url: 'http://127.0.0.1:8080/wallhaven-83dq9k.jpg'
+  // },
+
 ])
 
 </script>
@@ -13,7 +23,7 @@ const imageList = ref([
 <template>
   <div class="compare-page">
     <template v-for="(item, index) in imageList">
-      <image-canvas :imageData="item"></image-canvas>
+      <image-canvas :imageData="item" :image-index="index"></image-canvas>
     </template>
   </div>
 </template>
@@ -23,6 +33,7 @@ const imageList = ref([
   width: 100vw;
   height: 100vh;
   display: flex;
+  flex-wrap: wrap;
   overflow: hidden;
 }
 </style>

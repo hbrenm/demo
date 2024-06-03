@@ -1,5 +1,6 @@
 <script setup>
-import {onMounted, ref, toRefs} from 'vue'
+import {onMounted, onUnmounted, ref, toRefs} from 'vue'
+import { EventBus } from '../uitils/eventBus.js'
 import {fabric} from 'fabric'
 
 const props = defineProps({
@@ -7,6 +8,63 @@ const props = defineProps({
     type: Object,
     default: () => {
     }
+  },
+  imageIndex: {
+    type: Number,
+    default: 0
+  }
+})
+
+const emitEvent = (eventName, data) => {
+  EventBus.emit(eventName, data)
+}
+
+const handleDoomZoom = (data) => {
+  const { e } = data
+  const delta = e.e.deltaY;
+  const zoomRatio = 0.1;
+  console.log(props.imageIndex, e.e)
+  const mockEvent = {
+    clientX: e.e.offsetX + canvasDomRef.value.getBoundingClientRect().left,
+    clientY: e.e.offsetY + canvasDomRef.value.getBoundingClientRect().top,
+    preventDefault: () => {},
+    stopPropagation: () => {}
+  }
+  const pointer = canvasRef.value.getPointer(mockEvent);
+  const beforeZoom = imageRef.value.scaleX;
+  let zoom = imageRef.value.scaleX;
+
+  if (delta > 0) {
+    zoom -= zoomRatio;
+  } else {
+    zoom += zoomRatio;
+  }
+
+  imageRef.value.scaleX = zoom;
+  imageRef.value.scaleY = zoom;
+  console.log(props.imageIndex, pointer.x)
+
+  // 计算鼠标指针在图片上的位置 以便缩放后保持鼠标指针在图片上的位置不变
+  const offsetX = (pointer.x - imageRef.value.left) / beforeZoom - (pointer.x - imageRef.value.left) / zoom
+  const offsetY = (pointer.y - imageRef.value.top) / beforeZoom - (pointer.y - imageRef.value.top) / zoom
+  imageRef.value.left -= offsetX * zoom;
+  imageRef.value.top -= offsetY * zoom;
+  canvasRef.value.requestRenderAll();
+}
+
+const eventHandler = {
+  'doZoom': (data) => {
+    handleDoomZoom(data)
+  },
+  'doSomething': (message) => {}
+}
+for (const [eventName, handler] of Object.entries(eventHandler)) {
+  EventBus.on(eventName, handler)
+}
+
+onUnmounted(() => {
+  for (const [eventName, handler] of Object.entries(eventHandler)) {
+    EventBus.off(eventName, handler)
   }
 })
 
@@ -71,57 +129,21 @@ const initializeCanvas = async () => {
   fitImageToCanvas()
 
   // 启用缩放功能
-  canvasRef.value.on('mouse:wheel', (event) => {
-    const delta = event.e.deltaY;
-    const zoomRatio = 0.1;
-    const pointer = canvasRef.value.getPointer(event.e);
-    const beforeZoom = imageRef.value.scaleX;
-    let zoom = imageRef.value.scaleX;
+  canvasRef.value.on('mouse:wheel', (e) => {
+    emitEvent('doZoom', {
+      e,
+    })
 
-    if (delta > 0) {
-      zoom -= zoomRatio;
-    } else {
-      zoom += zoomRatio;
-    }
-
-    imageRef.value.scaleX = zoom;
-    imageRef.value.scaleY = zoom;
-
-    const imageWidth = imageRef.value.width * zoom;
-    const imageHeight = imageRef.value.height * zoom;
-    // 计算鼠标指针在图片上的位置 以便缩放后保持鼠标指针在图片上的位置不变
-    const offsetX = (pointer.x - imageRef.value.left) / beforeZoom - (pointer.x - imageRef.value.left) / zoom
-    const offsetY = (pointer.y - imageRef.value.top) / beforeZoom - (pointer.y - imageRef.value.top) / zoom
-    console.log(offsetX)
-    imageRef.value.left -= offsetX * zoom;
-    imageRef.value.top -= offsetY * zoom;
-
-    canvasRef.value.requestRenderAll();
   })
 }
 
-const getCursorPositonInImage = () => {
-  const pointer = canvasRef.value.getPointer(event.e);
-  const imageWidth = imageRef.value.width * imageRef.value.scaleX;
-  const imageHeight = imageRef.value.height * imageRef.value.scaleY;
-  const offsetX = (canvasRef.value.width - imageWidth) / 2;
-  const offsetY = (canvasRef.value.height - imageHeight) / 2;
-  const x = pointer.x - offsetX;
-  const y = pointer.y - offsetY;
-  return {x, y}
+const handleTest = () => {
+  console.log(canvasDomRef.value.getBoundingClientRect().left)
 }
-
 
 onMounted(() => {
   initializeCanvas()
 })
-
-const handleTest = () => {
-  imageRef.value.left = -200;
-  imageRef.value.top = -200;
-  canvasRef.value.requestRenderAll()
-}
-
 
 </script>
 <template>
@@ -138,10 +160,11 @@ const handleTest = () => {
 
 <style lang="less" scoped>
 .drawing-content {
-  width: 60%;
-  height: 70%;
+  width: 50%;
+  height: 50%;
   position: relative;
   background-color: #f5f5f5;
+  border: 1px solid red;
 
   .tools {
     position: absolute;

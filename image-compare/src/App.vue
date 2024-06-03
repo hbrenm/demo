@@ -5,7 +5,7 @@ import ImageCanvas from './components/image-canvas.vue'
 const imageList = ref([
   {
     url: 'http://127.0.0.1:8080/wallhaven-83dq9k.jpg'
-  }
+  },
 ])
 
 </script>

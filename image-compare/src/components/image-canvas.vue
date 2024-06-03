@@ -14,6 +14,12 @@ const props = defineProps({
     default: 0
   }
 })
+const lastImageLeft = ref(0)
+const lastImageTop = ref(0)
+
+const handleMouseDown = () => {
+
+}
 
 const emitEvent = (eventName, data) => {
   EventBus.emit(eventName, data)
@@ -52,11 +58,24 @@ const handleDoomZoom = (data) => {
   canvasRef.value.requestRenderAll();
 }
 
+const handleDoMoving = (data) => {
+  const { deltaX, deltaY } = data
+  imageRef.value.left = lastImageLeft.value + deltaX
+  imageRef.value.top = lastImageTop.value + deltaY
+  canvasRef.value.requestRenderAll()
+}
+
 const eventHandler = {
   'doZoom': (data) => {
     handleDoomZoom(data)
   },
-  'doSomething': (message) => {}
+  'doMoving': (data) => {
+    handleDoMoving(data)
+  },
+  'doMousseDown': () => {
+    lastImageLeft.value = imageRef.value.left
+    lastImageTop.value = imageRef.value.top
+  }
 }
 for (const [eventName, handler] of Object.entries(eventHandler)) {
   EventBus.on(eventName, handler)
@@ -93,7 +112,6 @@ function fitImageToCanvas() {
 
   imageRef.value.left += offsetX;
   imageRef.value.top += offsetY;
-
   canvasRef.value.requestRenderAll();
 }
 
@@ -112,7 +130,21 @@ const initializeCanvas = async () => {
   canvasRef.value.setHeight(operaBoxRef.value.offsetHeight)
 
   imageRef.value = await canvasLoadImage(imageData.value.url)
-
+  // 图片添加移动事件
+  imageRef.value.on('mousedown', (event) => {
+    const { clientX, clientY } = event.e
+    imageRef.value.set({ lastMouseX: clientX, lastMouseY: clientY})
+    emitEvent('doMousseDown', null)
+  })
+  imageRef.value.on('moving', (event) => {
+    console.log('image moving')
+    const { clientX, clientY } = event.e
+    const { lastMouseX, lastMouseY } = imageRef.value
+    const deltaX = clientX - lastMouseX
+    const deltaY = clientY - lastMouseY
+    emitEvent('doMoving', { deltaX, deltaY })
+  })
+  // imageRef.value.ad
   canvasRef.value.add(imageRef.value)
   // 隐藏控制点
   imageRef.value.setControlsVisibility({

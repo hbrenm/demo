@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, reactive } from 'vue'
 
 const images = ref([
   'http://127.0.0.1:8080/wallhaven-83dq9k.jpg',
@@ -43,6 +43,86 @@ const onDrop = (event) => {
   selectedImages.value = [];
 };
 
+const startSelection = (event) => {
+  console.log('start selection')
+  selectionBox.visible = true;
+  selectionBox.startX = event.clientX;
+  selectionBox.startY = event.clientY;
+  updateSelectionBox(event.clientX, event.clientY);
+};
+
+const moveSelection = (event) => {
+  if (selectionBox.visible) {
+    updateSelectionBox(event.clientX, event.clientY);
+  }
+};
+
+const updateSelectionBox = (mouseX, mouseY) => {
+  const left = Math.min(mouseX, selectionBox.startX);
+  const top = Math.min(mouseY, selectionBox.startY);
+  const width = Math.abs(mouseX - selectionBox.startX);
+  const height = Math.abs(mouseY - selectionBox.startY);
+  selectionBox.style = {
+    left: `${left}px`,
+    top: `${top}px`,
+    width: `${width}px`,
+    height: `${height}px`,
+    backgroundColor: `rgba(0, 0, 255, 0.2)`
+  };
+};
+
+const selectionBox = reactive({
+  visible: false,
+  startX: 0,
+  startY: 0,
+  style: {
+    left: '0px',
+    top: '0px',
+    width: '100px',
+    height: '100px',
+    backgroundColor: 'red',
+    zIndex: 9999
+  }
+});
+
+const endSelection = () => {
+  if (selectionBox.visible) {
+    selectionBox.visible = false;
+    selectedImages.value = []
+    selectImagesInBox();
+  }
+};
+
+const selectImagesInBox = () => {
+  // 判断图片是否在选择框内
+  const box = selectionBox.style
+  const boxLeft = parseInt(box.left.replace('px', ''));
+  const boxTop = parseInt(box.top.replace('px', ''));
+  const boxWidth = parseInt(box.width.replace('px', ''));
+  const boxHeight = parseInt(box.height.replace('px', ''));
+  const boxRight = boxLeft + boxWidth
+  const boxBottom = boxTop + boxHeight
+
+  images.value.forEach(image => {
+    const imageRect = document.querySelector(`img[src='${image}']`).getBoundingClientRect();
+    const imageLeft = imageRect.left;
+    const imageTop = imageRect.top;
+    const imageRight = imageRect.right;
+    const imageBottom = imageRect.bottom;
+
+    // 判断图片是否和选择框有交集
+    const hasIntersection =
+      boxLeft < imageRight &&
+      boxRight > imageLeft &&
+      boxTop < imageBottom &&
+      boxBottom > imageTop;
+
+    if (hasIntersection) {
+      selectedImages.value.push(image);
+    }
+  })
+}
+
 const onDragOver = (event) => {
   event.preventDefault();
 };
@@ -50,10 +130,11 @@ const onDragOver = (event) => {
 </script>
 <template>
   <div class="container">
-    <div class="left-panel">
+    <div class="left-panel" @mousedown="startSelection" @mousemove="moveSelection" @mouseup="endSelection">
       <div
         v-for="(image, index) in images"
         :key="index"
+        style="width: 200px; height: 200px;"
         :class="['image-item', { selected: selectedImages.includes(image) }]"
         @click="toggleSelect(image)"
         draggable="true"
@@ -69,6 +150,7 @@ const onDragOver = (event) => {
       >
         Drag {{ selectedImages.length }} selected images
       </div>
+      <div v-if="selectionBox.visible" class="selection-box" :style="selectionBox.style"></div>
     </div>
     <div class="right-panel" @drop="onDrop" @dragover="onDragOver">
       <div v-for="(image, index) in droppedImages" :key="index" class="dropped-image">
@@ -86,6 +168,10 @@ const onDragOver = (event) => {
   flex: 1;
   padding: 10px;
   border: 1px solid #ccc;
+  position: relative;
+}
+.selection-box {
+  position: absolute;
 }
 .image-item {
   cursor: pointer;

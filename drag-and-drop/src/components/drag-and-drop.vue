@@ -12,6 +12,7 @@ const selectedImages = ref([]);
 const droppedImages = ref([]);
 
 const toggleSelect = (image) => {
+  console.log('click')
   const index = selectedImages.value.indexOf(image);
   if (index === -1) {
     selectedImages.value.push(image);
@@ -88,7 +89,7 @@ const selectionBox = reactive({
 const endSelection = () => {
   if (selectionBox.visible) {
     selectionBox.visible = false;
-    selectedImages.value = []
+    // selectedImages.value = []
     selectImagesInBox();
   }
 };
@@ -120,6 +121,16 @@ const selectImagesInBox = () => {
     if (hasIntersection) {
       selectedImages.value.push(image);
     }
+
+    // 判断选择框是否在图片内
+    const isInside =
+      boxLeft > imageLeft &&
+      boxRight < imageRight &&
+      boxTop > imageTop &&
+      boxBottom < imageBottom;
+    if (isInside) {
+      selectedImages.value.push(image)
+    }
   })
 }
 
@@ -130,7 +141,8 @@ const onDragOver = (event) => {
 </script>
 <template>
   <div class="container">
-    <div class="left-panel" @mousedown="startSelection" @mousemove="moveSelection" @mouseup="endSelection">
+<!--    @mousedown="startSelection" @mousemove="moveSelection" @mouseup="endSelection"-->
+    <div class="left-panel" @mousedown="startSelection" @mousemove="moveSelection"  @mouseup="endSelection">
       <div
         v-for="(image, index) in images"
         :key="index"
@@ -138,8 +150,9 @@ const onDragOver = (event) => {
         :class="['image-item', { selected: selectedImages.includes(image) }]"
         @click="toggleSelect(image)"
         draggable="true"
-        @dragstart="(event) => onDragStart(event, image)"
+
       >
+<!--        @dragstart="(event) => onDragStart(event, image)"-->
         <img :src="image" alt="image" style="width: 200px; height: 200px;" />
       </div>
       <div

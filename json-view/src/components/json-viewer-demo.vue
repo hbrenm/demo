@@ -12,22 +12,21 @@ function convertJsonToTree(json, parentKey = '') {
       const value = json[key];
       const fullKey = parentKey ? `${parentKey}.${key}` : key;
 
-      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-        // If the value is an object, recursively process it
-        result.push({
-          id: fullKey,
-          key: key,
-          value: '',
-          children: convertJsonToTree(value, fullKey)
+      if (Array.isArray(value)) {
+        // If the value is an array, process each element
+        const children = value.map((item, index) => {
+          const itemKey = `${fullKey}[${index}]`;
+          return typeof item === 'object' && item !== null
+            ? { id: itemKey, key: `${index}`, value: '', children: convertJsonToTree(item, itemKey) }
+            : { id: itemKey, key: `${index}`, value: item, children: [] };
         });
+        result.push({ id: fullKey, key: key, value: '', children });
+      } else if (typeof value === 'object' && value !== null) {
+        // If the value is an object, recursively process it
+        result.push({ id: fullKey, key: key, value: '', children: convertJsonToTree(value, fullKey) });
       } else {
         // Otherwise, add the value directly
-        result.push({
-          id: fullKey,
-          key: key,
-          value: value,
-          children: []
-        });
+        result.push({ id:fullKey, key: key, value: value, children: [] });
       }
     }
   }
